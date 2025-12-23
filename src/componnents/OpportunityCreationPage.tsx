@@ -27,9 +27,9 @@ function OpportunityCreation() {
     const fetchAccounts = async () => {
         try {
             const results = await axios.get(`${baseUrl}/sap-accounts`)
-            // console.log("res:", results.data)
+
             setAccounts(results.data)
-            // console.log("accounts:", accounts)
+
 
         }
         catch (err: any) {
@@ -78,6 +78,7 @@ function OpportunityCreation() {
                 : [...prev, displayId]
         );
     };
+
     const handleNextPage = () => {
         if (currentPage < totalPages) {
             setCurrentPage(currentPage + 1);
@@ -89,10 +90,34 @@ function OpportunityCreation() {
             setCurrentPage(currentPage - 1);
         }
     };
+    const isFormValid =
+        opportunityName.trim() !== '' &&
+        selectedAccounts.length > 0 &&
+        selectedCycle &&
+        selectedPhase &&
+        selectedStatus &&
+        selectedCategory;
+
+    const [showValidationError, setShowValidationError] = useState(false);
+
+    const handleCreateClick = () => {
+        if (!isFormValid) {
+            setShowValidationError(true);
+            return;
+        }
+
+        handleCreateOpportunities();
+    };
+
     const handleCreateOpportunities = async () => {
+
 
         if (selectedAccounts.length === 0) {
             alert('נא לבחור לפחות לקוח אחד');
+            return;
+        }
+        if (!isFormValid) {
+            alert('נא למלא את כל שדות החובה ולבחור לפחות לקוח אחד');
             return;
         }
 
@@ -100,17 +125,18 @@ function OpportunityCreation() {
 
         try {
 
-            const accountGUIDs = selectedAccounts.map(displayId => {
-                const account = accounts.find(acc => acc.displayId === displayId);
-                return account?.id;
-            }).filter(Boolean);
 
-            console.log('Creating opportunities for:', accountGUIDs);
-
+            const selectedAccountsData = selectedAccounts.map(displayID => {
+                const account = accounts.find(acc => acc.displayId === displayID)
+                return {
+                    id: account?.id,
+                    name: account?.formattedName
+                }
+            }).filter(acc => acc.id && acc.name)
 
             const response = await axios.post(`${baseUrl}/opportunities`, {
-                name: opportunityName,
-                accountIds: accountGUIDs,
+                oppName: opportunityName,
+                accounts: selectedAccountsData,
                 salesCycleCode: selectedCycle,
                 salesPhaseCode: selectedPhase,
                 lifeCycleStatus: selectedStatus,
@@ -159,6 +185,7 @@ function OpportunityCreation() {
 
     }
 
+
     return (
         <div className="min-h-screen bg-gray-50 p-8">
             <div className="max-w-7xl mx-auto">
@@ -204,10 +231,10 @@ function OpportunityCreation() {
                                         />
                                     </th>
                                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                                        Account Code
+                                        Client Code
                                     </th>
-                                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
-                                        Account Name
+                                    <th className="px-6 py-4 pl-20 text-left text-sm font-semibold text-gray-900">
+                                        Client Name
                                     </th>
                                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
                                         Owner
@@ -219,7 +246,7 @@ function OpportunityCreation() {
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                                 {currentAccounts.map((account) => {
-                                    // console.log("account:", account);
+
                                     return (
                                         <tr key={account.displayId} className="hover:bg-gray-50">
                                             <td className="px-6 py-4">
@@ -231,9 +258,9 @@ function OpportunityCreation() {
                                                 />
                                             </td>
                                             <td className="px-6 py-4 text-sm text-gray-900">{account?.displayId}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-900">{account?.formattedName}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-900">{account?.ownerFormattedName}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-900">{account?.salesTerritories?.[0]?.salesTerritoryName || 'N/A'}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-900">{account?.formattedName.substring(0, account?.formattedName.lastIndexOf(' '))}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-900">{account?.ownerFormattedName || '-'}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-900">{account?.salesTerritories?.[0]?.salesTerritoryName || '-'}</td>
                                         </tr>
                                     );
                                 })}
@@ -279,14 +306,15 @@ function OpportunityCreation() {
                         {/* Row 1 */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Opportunity Name <span className="text-red-500">*</span>
+                                Brand Name <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="text"
                                 value={opportunityName}
                                 onChange={(e) => setOpportunityName(e.target.value)}
                                 placeholder="Enter opportunity name"
-                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                className={`w-full px-4 py-2.5 border rounded-lg
+    ${!opportunityName ? 'border-red-500' : 'border-gray-300'}`}
                             />
                         </div>
 
@@ -306,10 +334,10 @@ function OpportunityCreation() {
                             </label>
 
                             < SalesPhase
-                                
+
                                 value={selectedPhase}
                                 onChange={setSelectedPhase}
-                                 selectedCycleCode={selectedCycle} />
+                                selectedCycleCode={selectedCycle} />
                         </div>
 
                         {/* Row 2 */}
@@ -324,7 +352,7 @@ function OpportunityCreation() {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Category <span className="text-red-500">*</span>
+                                Brand <span className="text-red-500">*</span>
                             </label>
                             <CategoriesSelect
                                 value={selectedCategory}
@@ -345,10 +373,11 @@ function OpportunityCreation() {
                         >
                             Cancel
                         </button>
+
                         <button
                             className="px-6 py-2.5 rounded-lg text-white font-medium"
                             style={{ backgroundColor: '#2563eb' }}
-                            onClick={handleCreateOpportunities}
+                            onClick={handleCreateClick}
                             disabled={loading}
                         >
                             {loading ? 'Creating...' : 'Create Opportunities'}
@@ -356,7 +385,30 @@ function OpportunityCreation() {
                     </div>
                 </div>
             </div>
+            {showValidationError && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                            שגיאה
+                        </h3>
+                        <p className="text-gray-700 mb-6">
+                            נא למלא את כל שדות החובה ולבחור לפחות לקוח אחד
+                        </p>
+                        <div className="flex justify-end">
+                            <button
+                                className="px-4 py-2 rounded-lg text-white"
+                                style={{ backgroundColor: '#2563eb' }}
+                                onClick={() => setShowValidationError(false)}
+                            >
+                                הבנתי
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
+
     );
 }
 

@@ -28,7 +28,8 @@ export default function CategoriesSelect({value,onChange}: CategoryProps){
 
     }, [])
     const categoriesOptions = [{value: '' , label: 'Select Category'} , 
-        ...categories.map((category) => ({value: category.code, label: category.description}))
+        ...categories.filter((category) => category.isActive === true)
+        .map((category) => ({value: category.code, label: category.description}))
     ]
     
     return (
